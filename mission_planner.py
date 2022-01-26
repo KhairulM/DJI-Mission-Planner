@@ -1,26 +1,26 @@
 import argparse
-import requests
 import paho.mqtt.client as mqtt
+from mission_loader import MissionLoader
 
 parser = argparse.ArgumentParser()
 parser.description = "Mission Planner for Panasonic DJI Drone"
 parser.add_argument('--host', help="Hostname for MQTT broker",
                     type=str, required=True)
 parser.add_argument(
-    '-p', help="Port number for MQTT broker", type=int, default=1883)
+    '-p', help="Port number for MQTT broker", dest="port", type=int, default=1883)
 parser.add_argument(
-    '-u', help="Username for MQTT authentication", type=str, default="")
+    '-u', help="Username for MQTT authentication", dest="username", type=str, default="")
 parser.add_argument(
-    '-P', help="Password for MQTT authentication", type=str, default=None)
+    '-P', help="Password for MQTT authentication", dest="password", type=str, default=None)
 parser.add_argument(
     '-v', help="Set the logging level to verbose", dest="verbose", action="store_true")
 parser.set_defaults(verbose=False)
 args = parser.parse_args()
 
 mHost = args.host
-mPort = args.p
-mUsername = args.u
-mPassword = args.P
+mPort = args.port
+mUsername = args.username
+mPassword = args.password
 mClient = mqtt.Client()
 
 mDroneConnectionStatus = False
@@ -49,6 +49,11 @@ def onDJIFlightModeStatus(client, userdata, msg):
     mDroneFlightMode = msg.payload.decode()
 
 
+def onMissionPlannerStart(client, userdata, msg):
+    if (args.verbose):
+        print("onMissionPlannerStart:", msg.payload.decode())
+
+
 def onMissionPlannerShutdown(client, userdata, msg):
     if (args.verbose):
         print("onMissionPlannerShutdown:", msg.payload.decode())
@@ -69,6 +74,7 @@ def onMqttConnect(client, userdata, flags, rc):
     client.subscribe([
         ("dji/status/connection", 1),
         ("dji/status/flight-mode", 1),
+        ("mission-planner/start", 1)
         ("mission-planner/shutdown", 1),
         ("cv/status", 2)
     ])
@@ -83,8 +89,12 @@ def init():
     mClient.message_callback_add(
         "dji/status/flight-mode", onDJIFlightModeStatus)
     mClient.message_callback_add(
+        "mission-planner/start", onMissionPlannerStart)
+    mClient.message_callback_add(
         "mission-planner/shutdown", onMissionPlannerShutdown)
     mClient.message_callback_add("cv/status", onCvStatus)
+
+    missionLoader = MissionLoader()
 
 
 def connect():
