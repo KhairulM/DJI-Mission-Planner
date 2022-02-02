@@ -3,6 +3,19 @@ import paho.mqtt.client as mqtt
 from mission_loader import MissionLoader
 from mission_executor import MissionExecutor
 
+TOPIC_MISSION_PLANNER_START = "mission-planner/start"
+TOPIC_MISSION_PLANNER_START_RESULT = "mission-planner/start/result"
+TOPIC_MISSION_PLANNER_PAUSE = "mission-planner/pause"
+TOPIC_MISSION_PLANNER_PAUSE_RESULT = "mission-planner/pause/result"
+TOPIC_MISSION_PLANNER_RESTART = "mission-planner/restart"
+TOPIC_MISSION_PLANNER_RESTART_RESULT = "mission-planner/restart/result"
+TOPIC_MISSION_PLANNER_SHUTDOWN = "mission-planner/shutdown"
+TOPIC_MISSION_PLANNER_SHUTDOWN_RESULT = "mission-planner/shutdown/result"
+TOPIC_MISSION_PLANNER_MISSION_ID = "mission-planner/mission-id"
+TOPIC_DJI_STATUS_CONNECTION = "dji/status/connection"
+TOPIC_DJI_STATUS_FLIGHT_MODE = "dji/status/flight-mode"
+TOPIC_DJI_STATUS_FLIGHT_CONTROL = "dji/status/flight-control"
+
 
 class MissionPlanner:
     def __init__(self, host, port, username, password, missionId, sendFreq, verbose):
@@ -13,7 +26,7 @@ class MissionPlanner:
         self.missionId = missionId
         self.verbose = verbose
         self.mqttClient = mqtt.Client()
-        self.missionLoader = MissionLoader(missionId, verbose)
+        self.missionLoader = MissionLoader(missionId, host, verbose)
         self.missionExecutor = MissionExecutor(
             username, password, sendFreq, verbose)
 
@@ -27,6 +40,8 @@ class MissionPlanner:
 
         self.currentMissionIndex = 0
         self.MISSIONS = []
+        self.max_altitude = None
+        self.mission_speed = None
 
         if (self.verbose):
             print("MissionPlanner: init: initializing mqtt")
@@ -35,17 +50,19 @@ class MissionPlanner:
         self.mqttClient.username_pw_set(username, password)
 
         self.mqttClient.message_callback_add(
-            "dji/status/connection", self.onDJIConnectionStatus)
+            TOPIC_DJI_STATUS_CONNECTION, self.onDJIConnectionStatus)
         self.mqttClient.message_callback_add(
-            "dji/status/flight-mode", self.onDJIFlightModeStatus)
+            TOPIC_DJI_STATUS_FLIGHT_MODE, self.onDJIFlightModeStatus)
         self.mqttClient.message_callback_add(
-            "dji/status/flight-control", self.onDJIFlightControlStatus)
+            TOPIC_DJI_STATUS_FLIGHT_CONTROL, self.onDJIFlightControlStatus)
         self.mqttClient.message_callback_add(
-            "mission-planner/start", self.onMissionPlannerStart)
+            TOPIC_MISSION_PLANNER_START, self.onMissionPlannerStart)
         self.mqttClient.message_callback_add(
-            "mission-planner/shutdown", self.onMissionPlannerShutdown)
+            TOPIC_MISSION_PLANNER_SHUTDOWN, self.onMissionPlannerShutdown)
         self.mqttClient.message_callback_add(
-            "mission-planner/pause", self.onMissionPlannerPause)
+            TOPIC_MISSION_PLANNER_PAUSE, self.onMissionPlannerPause)
+        # self.mqttClient.message_callback_add(
+        #     TOPIC_MISSION_PLANNER_RESTART, self.onMissionPlannerRestart)
 
     def start(self):
         missionFailCount = 0
@@ -60,19 +77,33 @@ class MissionPlanner:
                     not self.mqttClient.is_connected()):
                 continue
 
+            # DEFAULT ACTION TO TAKE IF MISSION FAILED MULTIPLE TIMES
+            if missionFailCount > 3:
+                self.pauseMissionExecution(True)
+                missionFailCount = 0
+                continue
+
+            if self.currentMissionIndex >= len(self.MISSIONS):
+                if (self.verbose):
+                    print("MissionPlanner: mission finished")
+
+                self.isStartMission = False
+                continue
+
             result = self.missionExecutor.execute(
-                self.MISSIONS[self.currentMissionIndex])
+                self.MISSIONS[self.currentMissionIndex],
+                self.max_altitude,
+                self.mission_speed
+            )
+
+            if (self.verbose):
+                print("MisionPlanner: mission execution result:", result)
 
             if result == 0:
                 self.currentMissionIndex += 1
                 missionFailCount = 0
-                continue
             elif result == -1:
                 missionFailCount += 1
-
-            # DEFAULT ACTION TO TAKE IF MISSION FAILED MULTIPLE TIMES
-            if missionFailCount > 3:
-                self.pauseMissionExecution(True)
 
     def connect(self):
         if (self.verbose):
@@ -98,8 +129,17 @@ class MissionPlanner:
         self.isMissionLoaded = False
 
         try:
-            self.MISSIONS = self.missionLoader.load()
+            mission_config = self.missionLoader.load()
+            self.MISSIONS = mission_config["missions"]
+            self.max_altitude = mission_config["max_altitude"]
+            self.mission_speed = mission_config["mission_speed"]
+
             self.isMissionLoaded = True
+            self.mqttClient.publish(
+                TOPIC_MISSION_PLANNER_MISSION_ID, self.missionId, 1)
+
+            if (self.verbose):
+                print("MissionPlanner: loadMission: mission loaded")
         except Exception as e:
             print("[ERR] MissionPlanner: loadMission exception:", str(e))
 
@@ -108,12 +148,13 @@ class MissionPlanner:
             print("MissionPlanner: onMqttConnect:", mqtt.connack_string(rc))
 
         self.mqttClient.subscribe([
-            ("dji/status/connection", 1),
-            ("dji/status/flight-mode", 1),
-            ("dji/status/flight-control", 1)
-            ("mission-planner/start", 1),
-            ("mission-planner/pause", 1),
-            ("mission-planner/shutdown", 1)
+            (TOPIC_DJI_STATUS_CONNECTION, 1),
+            (TOPIC_DJI_STATUS_FLIGHT_MODE, 1),
+            (TOPIC_DJI_STATUS_FLIGHT_CONTROL, 1),
+            (TOPIC_MISSION_PLANNER_START, 1),
+            (TOPIC_MISSION_PLANNER_PAUSE, 1),
+            # (TOPIC_MISSION_PLANNER_RESTART, 2),
+            (TOPIC_MISSION_PLANNER_SHUTDOWN, 1)
         ])
 
     def onMqttDisconnect(self, client, userdata, rc):
@@ -153,11 +194,23 @@ class MissionPlanner:
 
         self.isStartMission = msg.payload.decode().lower() == "true"
 
+        self.mqttClient.publish(
+            TOPIC_MISSION_PLANNER_START_RESULT, "started" if self.isStartMission else "failed", 1)
+
     def onMissionPlannerPause(self, client, userdata, msg):
         if (self.verbose):
             print("MissionPlanner: onMissionPlannerPause:", msg.payload.decode())
 
         self.pauseMissionExecution(msg.payload.decode().lower() == "true")
+
+        self.mqttClient.publish(TOPIC_MISSION_PLANNER_PAUSE_RESULT,
+                                "paused" if self.isPauseMission else "unpaused", 1)
+
+    def onMissionPlannerRestart(self, client, userdata, msg):
+        if (self.verbose):
+            print("MissionPlanner: onMissionPlannerRestart:", msg.payload.decode())
+
+        self.currentMissionIndex = 0
 
     def onMissionPlannerShutdown(self, client, userdata, msg):
         if (self.verbose):
@@ -165,13 +218,18 @@ class MissionPlanner:
                   msg.payload.decode())
 
         if (msg.payload.decode().lower() == "true"):
+            self.mqttClient.publish(
+                TOPIC_MISSION_PLANNER_SHUTDOWN_RESULT, "stopped", 1)
             self.disconnect()
             quit()
+
+        self.mqttClient.publish(
+            TOPIC_MISSION_PLANNER_SHUTDOWN_RESULT, "failed", 1)
 
 
 parser = argparse.ArgumentParser()
 parser.description = "Mission Planner for Panasonic DJI Drone"
-parser.add_argument('--host', help="Hostname for MQTT broker",
+parser.add_argument('--host', help="Hostname for MQTT broker and the backend server",
                     type=str, required=True)
 parser.add_argument(
     '-p', help="Port number for MQTT broker", dest="port", type=int, default=1883)

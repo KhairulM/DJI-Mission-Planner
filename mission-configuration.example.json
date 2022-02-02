@@ -1,7 +1,39 @@
 {
-  "sweep_configuration": 1,
-  "speed": 1,
-  "rows": [
-    []
+  "id": "1",
+  "mission_name": "Misi 1",
+  "drone_name": "DJI Phantom 4 Pro V2.0",
+  "start_point": "",
+  "end_point": "",
+  "mission_speed": 1.0,
+  "max_altitude": 5.0,
+  "sweep_config": [
+    2,
+    3
+  ],
+  "rack_size": [
+    {
+      "width": 2.7,
+      "level_height": [
+        1.0,
+        1.5,
+        1.0
+      ]
+    },
+    {
+      "width": 2.7,
+      "level_height": [
+        1.0,
+        1.5,
+        1.0
+      ]
+    },
+    {
+      "width": 3.0,
+      "level_height": [
+        1.0,
+        2.0,
+        3.0
+      ]
+    }
   ]
 }
