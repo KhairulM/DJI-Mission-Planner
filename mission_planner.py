@@ -13,7 +13,7 @@ TOPIC_MISSION_PLANNER_SHUTDOWN = "mission-planner/shutdown"
 TOPIC_MISSION_PLANNER_SHUTDOWN_RESULT = "mission-planner/shutdown/result"
 TOPIC_MISSION_PLANNER_MISSION_ID = "mission-planner/mission-id"
 TOPIC_DJI_STATUS_CONNECTION = "dji/status/connection"
-TOPIC_DJI_STATUS_FLIGHT_MODE = "dji/status/flight-mode"
+# TOPIC_DJI_STATUS_FLIGHT_MODE = "dji/status/flight-mode"
 TOPIC_DJI_STATUS_FLIGHT_CONTROL = "dji/status/flight-control"
 TOPIC_DJI_CONTROL_LAND = "dji/control/land"
 TOPIC_DJI_CONTROL_LAND_RESULT = "dji/control/land/result"
@@ -28,7 +28,7 @@ class MissionPlanner:
         self.missionId = missionId
         self.verbose = verbose
         self.mqttClient = mqtt.Client()
-        self.missionLoader = MissionLoader(missionId, host, verbose)
+        self.missionLoader = MissionLoader(host, missionId, verbose)
         self.missionExecutor = MissionExecutor(
             username, password, sendFreq, verbose)
 
@@ -43,8 +43,6 @@ class MissionPlanner:
 
         self.currentMissionIndex = 0
         self.MISSIONS = []
-        self.max_altitude = None
-        self.mission_speed = None
 
         if (self.verbose):
             print("MissionPlanner: init: initializing mqtt")
@@ -97,10 +95,7 @@ class MissionPlanner:
                 continue
 
             result = self.missionExecutor.execute(
-                self.MISSIONS[self.currentMissionIndex],
-                self.max_altitude,
-                self.mission_speed
-            )
+                self.MISSIONS[self.currentMissionIndex])
 
             if (self.verbose):
                 print("MisionPlanner: mission execution result:", result)
@@ -135,10 +130,13 @@ class MissionPlanner:
         self.isMissionLoaded = False
 
         try:
-            mission_config = self.missionLoader.load()
-            self.MISSIONS = mission_config["missions"]
-            self.max_altitude = mission_config["max_altitude"]
-            self.mission_speed = mission_config["mission_speed"]
+            missionConfig = self.missionLoader.load()
+            self.MISSIONS = missionConfig["missions"]
+
+            self.missionExecutor.setMaxAltitude(missionConfig["max_altitude"])
+            self.missionExecutor.setMinAltitude(0.5)
+            self.missionExecutor.setMissionSpeed(
+                missionConfig["mission_speed"])
 
             self.isMissionLoaded = True
             self.mqttClient.publish(
@@ -190,11 +188,11 @@ class MissionPlanner:
         self.droneConnectionStatus = msg.payload.decode().lower() == "true"
         self.pauseMissionExecution(not self.droneConnectionStatus)
 
-    def onDJIFlightModeStatus(self, client, userdata, msg):
-        if (self.verbose):
-            print("MissionPlanner: onDJIFlightModeStatus:", msg.payload.decode())
+    # def onDJIFlightModeStatus(self, client, userdata, msg):
+    #     if (self.verbose):
+    #         print("MissionPlanner: onDJIFlightModeStatus:", msg.payload.decode())
 
-        self.droneFlightMode = msg.payload.decode()
+    #     self.droneFlightMode = msg.payload.decode()
 
     def onDJIFlightControlStatus(self, client, userdata, msg):
         if (self.verbose):

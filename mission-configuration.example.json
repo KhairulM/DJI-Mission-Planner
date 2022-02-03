@@ -7,32 +7,17 @@
   "mission_speed": 1.0,
   "max_altitude": 6.0,
   "sweep_config": [
-    2,
-    3
+    1
+  ],
+  "rack_id": [
+    "a1"
   ],
   "rack_size": [
     {
       "width": 2.7,
       "level_height": [
         1.0,
-        1.5,
-        1.0
-      ]
-    },
-    {
-      "width": 2.7,
-      "level_height": [
-        1.0,
-        1.5,
-        1.0
-      ]
-    },
-    {
-      "width": 3.0,
-      "level_height": [
-        1.0,
-        2.0,
-        3.0
+        1.5
       ]
     }
   ]

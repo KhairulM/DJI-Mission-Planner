@@ -4,33 +4,50 @@ import paho.mqtt.client as mqtt
 from mission import Mission
 from mission_type import MissionType
 
+TOPIC_CV_STATUS = "cv/status"
+TOPIC_CV_ARUCO_POSITION = "cv/aruco-position"
+TOPIC_DJI_CONTROL = "dji/control"
+TOPIC_DJI_CONTROL_TAKEOFF = "dji/control/takeoff"
+TOPIC_DJI_CONTROL_RTH = "dji/control/rth"
+TOPIC_DJI_CONTROL_TAKEOFF_RESULT = "dji/control/takeoff/result"
+TOPIC_DJI_CONTROL_RTH_RESULT = "dji/control/rth/result"
+TOPIC_DJI_STATUS_ALTITUDE = "dji/status/altitude"
+TOPIC_MISSION_PLANNER_RACK_ID = "mission-planner/rack-id"
+
 ALTITUDE_ERR = 0.3
+BOUNDARY_Y_HIGH = 720
+BOUNDARY_Y_LOW = 576
+BOUNDARY_X_HIGH = 192
+BOUNDARY_X_LOW = 0
 
 
 class MissionExecutor:
     def __init__(self, username, password, freq, verbose):
         self.freq = freq
         self.verbose = verbose
-        self.isMqttConnected = False
 
         self.mqttClient = mqtt.Client()
         self.mqttClient.max_inflight_messages_set(50)
         self.mqttClient.username_pw_set(username, password)
 
-        self.mqttClient.message_callback_add("cv/status", self.onCvStatus)
+        self.mqttClient.message_callback_add(TOPIC_CV_STATUS, self.onCvStatus)
         self.mqttClient.message_callback_add(
-            "cv/aruco-position", self.onCvArucoPosition)
+            TOPIC_CV_ARUCO_POSITION, self.onCvArucoPosition)
         self.mqttClient.message_callback_add(
-            "dji/control/takeoff/result", self.onDJITakeoffResult)
+            TOPIC_DJI_CONTROL_TAKEOFF_RESULT, self.onDJITakeoffResult)
         self.mqttClient.message_callback_add(
-            "dji/control/rth/result", self.onDJIRTHResult)
+            TOPIC_DJI_CONTROL_RTH_RESULT, self.onDJIRTHResult)
         self.mqttClient.message_callback_add(
-            "dji/status/altitude", self.onDJIAltitude)
+            TOPIC_DJI_STATUS_ALTITUDE, self.onDJIAltitude)
 
         self.droneAltitude = 0.0
         self.droneTakeoffResult = None
         self.droneRthResult = None
         self.arucoPos = []
+
+        self.maxAlt = 0
+        self.minAlt = 0
+        self.missionSpeed = 0
 
     def connect(self, host, port):
         self.mqttClient.on_connect = self.onMqttConnect
@@ -42,11 +59,20 @@ class MissionExecutor:
         self.mqttClient.disconnect()
         self.mqttClient.loop_stop()
 
+    def setMaxAltitude(self, maxAlt):
+        self.maxAlt = maxAlt
+
+    def setMinAltitude(self, minAlt):
+        self.minAlt = minAlt
+
+    def setMissionSpeed(self, speed):
+        self.missionSpeed = speed
+
     # Sending control messages to the drone
     # Return: Error code for mission execution
     # 0: success
     # -1: failed
-    def execute(self, mission: Mission, maxAlt, missionSpeed):
+    def execute(self, mission: Mission):
         if (self.verbose):
             print("MissionExecutor: Executing mission:",
                   mission.typeString, str(mission.argument))
@@ -54,19 +80,19 @@ class MissionExecutor:
         try:
             if (mission.type == MissionType.up_to or
                     mission.type == MissionType.down_to):
-                return self.moveZ(abs(mission.argument[0]), maxAlt, 0.5)
+                return self.moveZ(abs(mission.argument[0]))
 
             if (mission.type == MissionType.up):
-                return self.moveZ(self.droneAltitude + abs(mission.argument[0]), maxAlt, 0.5)
+                return self.moveZ(self.droneAltitude + abs(mission.argument[0]))
 
             if (mission.type == MissionType.down):
-                return self.moveZ(self.droneAltitude - abs(mission.argument[0]), maxAlt, 0.5)
+                return self.moveZ(self.droneAltitude - abs(mission.argument[0]))
 
             if (mission.type == MissionType.right):
-                return self.moveX(abs(mission.argument[0]), abs(missionSpeed))
+                return self.moveX(abs(mission.argument[0]), abs(self.missionSpeed))
 
             if (mission.type == MissionType.left):
-                return self.moveX(abs(mission.argument[0]), -abs(missionSpeed))
+                return self.moveX(abs(mission.argument[0]), -abs(self.missionSpeed))
 
             if (mission.type == MissionType.rotate):
                 return self.rotate(mission.argument[0])
@@ -78,7 +104,7 @@ class MissionExecutor:
                 return self.sendRTH()
 
             if (mission.type == MissionType.align_with_barcode):
-                return self.alignWithBarcode(mission)
+                return self.alignWithBarcode(mission.argument[0])
 
             if (mission.type == MissionType.wait_for_cv):
                 return self.waitForCv()
@@ -87,9 +113,12 @@ class MissionExecutor:
             print("[ERR] MissionExecutor: execute exception:", str(e))
             return -1
 
-    def moveX(self, distance, missionSpeed):
-        controlData = [missionSpeed, 0.0, 0.0, 0.0]
-        second = distance/abs(missionSpeed)
+    def moveX(self, distance, speed):
+        if (speed == 0 or distance == 0):
+            return 0
+
+        controlData = [speed, 0.0, 0.0, 0.0]
+        second = distance/abs(speed)
 
         res = 0
         start = time.time()
@@ -99,9 +128,12 @@ class MissionExecutor:
 
         return res
 
-    def moveY(self, distance, missionSpeed):
-        controlData = [0.0, missionSpeed, 0.0, 0.0]
-        second = distance/abs(missionSpeed)
+    def moveY(self, distance, speed):
+        if (speed == 0 or distance == 0):
+            return 0
+
+        controlData = [0.0, speed, 0.0, 0.0]
+        second = distance/abs(speed)
 
         res = 0
         start = time.time()
@@ -111,8 +143,8 @@ class MissionExecutor:
 
         return res
 
-    def moveZ(self, alt, maxAlt, minAlt):
-        alt = min(max(alt, minAlt), maxAlt)
+    def moveZ(self, alt):
+        alt = min(max(alt, self.minAlt), self.maxAlt)
 
         res = self.sendControlData([0.0, 0.0, 0.0, alt])
 
@@ -146,7 +178,7 @@ class MissionExecutor:
             print("MissionExecutor: Sending control data:", controlData)
 
         for i in range(self.freq):
-            self.mqttClient.publish("dji/control", str(controlData), 2)
+            self.mqttClient.publish(TOPIC_DJI_CONTROL, str(controlData), 2)
             time.sleep(1.0/self.freq)
 
         return 0
@@ -159,7 +191,7 @@ class MissionExecutor:
             print("MissionExecutor: Sending takeoff comand")
 
         self.droneTakeoffResult = None
-        self.mqttClient.publish("dji/control/takeoff", "true", 2)
+        self.mqttClient.publish(TOPIC_DJI_CONTROL_TAKEOFF, "true", 2)
 
         while self.droneTakeoffResult == None or self.droneTakeoffResult == "started":
             continue
@@ -177,7 +209,7 @@ class MissionExecutor:
             print("MissionExecutor: Sending takeoff comand")
 
         self.droneRthResult = None
-        self.mqttClient.publish("dji/control/rth", "true", 2)
+        self.mqttClient.publish(TOPIC_DJI_CONTROL_RTH, "true", 2)
 
         while self.droneRthResult == None or self.droneRthResult == "started":
             continue
@@ -187,9 +219,50 @@ class MissionExecutor:
         elif self.droneRthResult == "completed":
             return 0
 
-    def alignWithBarcode(self, mission):
+    def alignWithBarcode(self, rackId):
         if (not self.mqttClient.is_connected()):
             return -1
+
+        if (self.verbose):
+            print("MissionExecutor: Aligning with barcode")
+
+        self.mqttClient.publish(TOPIC_MISSION_PLANNER_RACK_ID, rackId, 2)
+
+        # TODO: SMARTER IMPLEMENTATION PLS, SMH
+        isNotAligned = True
+        failCount = 0
+
+        while isNotAligned:
+            if (failCount >= 3):
+                return -1
+
+            if (rackId not in self.arucoPos):
+                failCount += 1
+                continue
+
+            barcodePos = self.arucoPos[rackId]
+            barcodePos = [(barcodePos[0][0] + barcodePos[1][0])/2,
+                          (barcodePos[0][1] + barcodePos[1][1])/2]
+            res = 0
+            isNotAligned = False
+
+            if (barcodePos[0] >= BOUNDARY_X_HIGH):
+                isNotAligned = True
+                res |= self.moveX(0.1, -0.1)
+            if (barcodePos[0] <= BOUNDARY_X_LOW):
+                isNotAligned = True
+                res |= self.moveX(0.1, 0.1)
+            if (barcodePos[1] >= BOUNDARY_Y_HIGH):
+                isNotAligned = True
+                res |= self.sendControlData(
+                    [0.0, 0.0, 0.0, self.droneAltitude + 0.1])
+            if (barcodePos[1] <= BOUNDARY_Y_LOW):
+                isNotAligned = True
+                res |= self.sendControlData(
+                    [0.0, 0.0, 0.0, self.droneAltitude - 0.1])
+
+            if (res == -1):
+                failCount += 1
 
         return 0
 
@@ -197,21 +270,17 @@ class MissionExecutor:
         if self.verbose:
             print("MissionExecutor: onMqttConnect:", mqtt.connack_string(rc))
 
-        self.isMqttConnected = rc == 0
-
         self.mqttClient.subscribe([
-            ("cv/status", 2),
-            ("cv/barcode", 2),
-            ("dji/status/altitude", 2),
-            ("dji/control/takeoff/result", 2),
-            ("dji/control/rth/result", 2)
+            (TOPIC_CV_STATUS, 2),
+            (TOPIC_CV_ARUCO_POSITION, 2),
+            (TOPIC_DJI_STATUS_ALTITUDE, 2),
+            (TOPIC_DJI_CONTROL_TAKEOFF_RESULT, 2),
+            (TOPIC_DJI_CONTROL_RTH_RESULT, 2)
         ])
 
     def onMqttDisconnect(self, client, userdata, rc):
         if self.verbose:
             print("MissionExecutor: onMqttConnect:", mqtt.connack_string(rc))
-
-        self.isMqttConnected = False
 
     def onCvStatus(self, client, userdata, msg):
         if (self.verbose):

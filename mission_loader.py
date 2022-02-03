@@ -11,16 +11,15 @@ class MissionLoader:
         self.host = host
 
     # Translate mission configuration to array of mission
-    # Return: array of Mission
+    # Return: array of Mission, mission max altitude, and mission speed
     def load(self):
-        # url = self.host + ":6868" + "/api/v1/config/" + self.missionId
+        # url = "http://" + self.host + ":6868" + "/api/v1/config/" + self.missionId
         # r = requests.get(url)
 
         # if (r.status_code == 200):
-        #     mission_configuration = r.json()
-        #     print(mission_configuration)
+        #     missionConfiguration = r.json()
 
-        with open("./mission-configuration.example.json", "r") as f:
+        with open("./mission-configuration.example.json") as f:
             missionConfiguration = json.load(f)
 
         maxAlt = float(missionConfiguration["max_altitude"])
@@ -38,17 +37,20 @@ class MissionLoader:
         missions.append(Mission(MissionType.takeoff))
 
         fromBottom = True
+        rackIdIdx = 0
+
         for rack, isScan in enumerate(sweepBool):
             isTransitionToNextRack = rack < len(sweepBool)-1
             levelHeights = self.transformLevelHeights(
                 rackSize[rack]["level_height"])
 
             if (isScan):
-                for i, level_height in enumerate(levelHeights) if fromBottom else enumerate(reversed(levelHeights)):
+                for i, levelHeight in enumerate(levelHeights) if fromBottom else enumerate(reversed(levelHeights)):
                     missions.append(
-                        Mission(MissionType.up_to, [level_height]))
+                        Mission(MissionType.up_to, [levelHeight]))
 
-                    missions.append(Mission(MissionType.align_with_barcode))
+                    missions.append(Mission(MissionType.align_with_barcode, [
+                                    "%s-%d" % (missionConfiguration["rack_id"][rackIdIdx], i+1 if fromBottom else len(levelHeights)-i)]))
                     missions.append(Mission(MissionType.wait_for_cv))
 
                     if (i == len(levelHeights) - 1 and isTransitionToNextRack):
@@ -56,6 +58,7 @@ class MissionLoader:
                             Mission(MissionType.right, [rackSize[rack]["width"] / 2 + rackSize[rack+1]["width"]/2]))
 
                 fromBottom = False
+                rackIdIdx += 1
             else:
                 if (isTransitionToNextRack):
                     missions.append(
