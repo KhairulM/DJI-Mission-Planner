@@ -5,7 +5,7 @@
   "start_point": "",
   "end_point": "",
   "mission_speed": 1.0,
-  "max_altitude": 5.0,
+  "max_altitude": 6.0,
   "sweep_config": [
     2,
     3

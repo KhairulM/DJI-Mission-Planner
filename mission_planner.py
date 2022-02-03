@@ -15,6 +15,8 @@ TOPIC_MISSION_PLANNER_MISSION_ID = "mission-planner/mission-id"
 TOPIC_DJI_STATUS_CONNECTION = "dji/status/connection"
 TOPIC_DJI_STATUS_FLIGHT_MODE = "dji/status/flight-mode"
 TOPIC_DJI_STATUS_FLIGHT_CONTROL = "dji/status/flight-control"
+TOPIC_DJI_CONTROL_LAND = "dji/control/land"
+TOPIC_DJI_CONTROL_LAND_RESULT = "dji/control/land/result"
 
 
 class MissionPlanner:
@@ -33,6 +35,7 @@ class MissionPlanner:
         self.droneConnectionStatus = False
         self.droneFlightControlStatus = False
         self.droneFlightMode = ""
+        self.droneLandingStatus = ""
 
         self.isMissionLoaded = False
         self.isStartMission = False
@@ -51,8 +54,8 @@ class MissionPlanner:
 
         self.mqttClient.message_callback_add(
             TOPIC_DJI_STATUS_CONNECTION, self.onDJIConnectionStatus)
-        self.mqttClient.message_callback_add(
-            TOPIC_DJI_STATUS_FLIGHT_MODE, self.onDJIFlightModeStatus)
+        # self.mqttClient.message_callback_add(
+        #     TOPIC_DJI_STATUS_FLIGHT_MODE, self.onDJIFlightModeStatus)
         self.mqttClient.message_callback_add(
             TOPIC_DJI_STATUS_FLIGHT_CONTROL, self.onDJIFlightControlStatus)
         self.mqttClient.message_callback_add(
@@ -63,6 +66,8 @@ class MissionPlanner:
             TOPIC_MISSION_PLANNER_PAUSE, self.onMissionPlannerPause)
         # self.mqttClient.message_callback_add(
         #     TOPIC_MISSION_PLANNER_RESTART, self.onMissionPlannerRestart)
+        self.mqttClient.message_callback_add(
+            TOPIC_DJI_CONTROL_LAND_RESULT, self.onDJILandResult)
 
     def start(self):
         missionFailCount = 0
@@ -80,6 +85,7 @@ class MissionPlanner:
             # DEFAULT ACTION TO TAKE IF MISSION FAILED MULTIPLE TIMES
             if missionFailCount > 3:
                 self.pauseMissionExecution(True)
+                self.startLanding()
                 missionFailCount = 0
                 continue
 
@@ -149,12 +155,13 @@ class MissionPlanner:
 
         self.mqttClient.subscribe([
             (TOPIC_DJI_STATUS_CONNECTION, 1),
-            (TOPIC_DJI_STATUS_FLIGHT_MODE, 1),
+            # (TOPIC_DJI_STATUS_FLIGHT_MODE, 1),
             (TOPIC_DJI_STATUS_FLIGHT_CONTROL, 1),
             (TOPIC_MISSION_PLANNER_START, 1),
             (TOPIC_MISSION_PLANNER_PAUSE, 1),
             # (TOPIC_MISSION_PLANNER_RESTART, 2),
-            (TOPIC_MISSION_PLANNER_SHUTDOWN, 1)
+            (TOPIC_MISSION_PLANNER_SHUTDOWN, 1),
+            (TOPIC_DJI_CONTROL_LAND_RESULT, 2)
         ])
 
     def onMqttDisconnect(self, client, userdata, rc):
@@ -166,6 +173,15 @@ class MissionPlanner:
             print("MissionPlanner: pauseMissionExecution:", pause)
 
         self.isPauseMission = pause
+
+        self.mqttClient.publish(TOPIC_MISSION_PLANNER_PAUSE_RESULT,
+                                "paused" if pause else "unpaused", 1)
+
+    def startLanding(self):
+        if (self.verbose):
+            print("MissionPlanner: startLanding: true")
+
+        self.mqttClient.publish(TOPIC_DJI_CONTROL_LAND, "true", 2)
 
     def onDJIConnectionStatus(self, client, userdata, msg):
         if (self.verbose):
@@ -188,6 +204,12 @@ class MissionPlanner:
         self.droneFlightControlStatus = msg.payload.decode().lower() == "true"
         self.pauseMissionExecution(not self.droneFlightControlStatus)
 
+    def onDJILandResult(self, client, userdata, msg):
+        if (self.verbose):
+            print("MissionPlanner: onDJILandResult:", msg.payload.decode())
+
+        self.droneLandingStatus = msg.payload.decode()
+
     def onMissionPlannerStart(self, client, userdata, msg):
         if (self.verbose):
             print("MissionPlanner: onMissionPlannerStart:", msg.payload.decode())
@@ -202,9 +224,6 @@ class MissionPlanner:
             print("MissionPlanner: onMissionPlannerPause:", msg.payload.decode())
 
         self.pauseMissionExecution(msg.payload.decode().lower() == "true")
-
-        self.mqttClient.publish(TOPIC_MISSION_PLANNER_PAUSE_RESULT,
-                                "paused" if self.isPauseMission else "unpaused", 1)
 
     def onMissionPlannerRestart(self, client, userdata, msg):
         if (self.verbose):

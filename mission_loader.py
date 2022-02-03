@@ -40,16 +40,18 @@ class MissionLoader:
         fromBottom = True
         for rack, isScan in enumerate(sweepBool):
             isTransitionToNextRack = rack < len(sweepBool)-1
-            levelHeights = rackSize[rack]["level_height"]
+            levelHeights = self.transformLevelHeights(
+                rackSize[rack]["level_height"])
 
             if (isScan):
                 for i, level_height in enumerate(levelHeights) if fromBottom else enumerate(reversed(levelHeights)):
-                    missions.append(Mission(MissionType.align_with_barcode))
+                    missions.append(
+                        Mission(MissionType.up_to, [level_height]))
 
-                    if (i+1 < len(rackSize[rack]["level_height"])):
-                        missions.append(
-                            Mission(MissionType.up if fromBottom else MissionType.down, [level_height]))
-                    elif (isTransitionToNextRack):
+                    missions.append(Mission(MissionType.align_with_barcode))
+                    missions.append(Mission(MissionType.wait_for_cv))
+
+                    if (i == len(levelHeights) - 1 and isTransitionToNextRack):
                         missions.append(
                             Mission(MissionType.right, [rackSize[rack]["width"] / 2 + rackSize[rack+1]["width"]/2]))
 
@@ -70,3 +72,13 @@ class MissionLoader:
             "max_altitude": maxAlt,
             "mission_speed": missionSpeed
         }
+
+    def transformLevelHeights(self, levelHeights):
+        newLevelHeights = []
+        sum = 0
+
+        for height in levelHeights:
+            sum += height
+            newLevelHeights.append(sum - height/2)
+
+        return newLevelHeights

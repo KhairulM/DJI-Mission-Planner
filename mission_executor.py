@@ -1,5 +1,5 @@
 import time
-import re
+import json
 import paho.mqtt.client as mqtt
 from mission import Mission
 from mission_type import MissionType
@@ -18,7 +18,8 @@ class MissionExecutor:
         self.mqttClient.username_pw_set(username, password)
 
         self.mqttClient.message_callback_add("cv/status", self.onCvStatus)
-        self.mqttClient.message_callback_add("cv/barcode", self.onCvBarcode)
+        self.mqttClient.message_callback_add(
+            "cv/aruco-position", self.onCvArucoPosition)
         self.mqttClient.message_callback_add(
             "dji/control/takeoff/result", self.onDJITakeoffResult)
         self.mqttClient.message_callback_add(
@@ -29,7 +30,7 @@ class MissionExecutor:
         self.droneAltitude = 0.0
         self.droneTakeoffResult = None
         self.droneRthResult = None
-        self.barcodePos = []
+        self.arucoPos = []
 
     def connect(self, host, port):
         self.mqttClient.on_connect = self.onMqttConnect
@@ -78,6 +79,9 @@ class MissionExecutor:
 
             if (mission.type == MissionType.align_with_barcode):
                 return self.alignWithBarcode(mission)
+
+            if (mission.type == MissionType.wait_for_cv):
+                return self.waitForCv()
 
         except Exception as e:
             print("[ERR] MissionExecutor: execute exception:", str(e))
@@ -213,18 +217,11 @@ class MissionExecutor:
         if (self.verbose):
             print("MissionExecutor: onCvStatus:", msg.payload.decode())
 
-    def onCvBarcode(self, client, userdata, msg):
+    def onCvArucoPosition(self, client, userdata, msg):
         if self.verbose:
-            print("MissionExecutor: onCvBarcode:", msg.payload.decode)
+            print("MissionExecutor: onCvArucoPosition:", msg.payload.decode)
 
-        self.barcodePos = self.parseCvBarcode(msg.payload.decode)
-
-    def parseCvBarcode(msgString):
-        pos = re.findall('[0-9]+', msgString)
-
-        barcodePos = []
-        for i in range(0, len(pos), 2):
-            barcodePos.append((pos[i], pos[i+1]))
+        self.arucoPos = json.loads(msg.payload.decode())
 
     def onDJITakeoffResult(self, client, userdata, msg):
         if (self.verbose):
