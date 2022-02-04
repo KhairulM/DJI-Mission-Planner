@@ -6,6 +6,7 @@ from mission_type import MissionType
 
 TOPIC_CV_STATUS = "cv/status"
 TOPIC_CV_ARUCO_POSITION = "cv/aruco-position"
+TOPIC_CV_RUN_DETECTION = "cv/run-detection"
 TOPIC_DJI_CONTROL = "dji/control"
 TOPIC_DJI_CONTROL_TAKEOFF = "dji/control/takeoff"
 TOPIC_DJI_CONTROL_RTH = "dji/control/rth"
@@ -17,8 +18,8 @@ TOPIC_MISSION_PLANNER_RACK_ID = "mission-planner/rack-id"
 ALTITUDE_ERR = 0.3
 BOUNDARY_Y_HIGH = 720
 BOUNDARY_Y_LOW = 576
-BOUNDARY_X_HIGH = 192
-BOUNDARY_X_LOW = 0
+BOUNDARY_X_HIGH = 576
+BOUNDARY_X_LOW = 384
 
 
 class MissionExecutor:
@@ -227,7 +228,7 @@ class MissionExecutor:
             print("MissionExecutor: Aligning with barcode")
 
         self.mqttClient.publish(TOPIC_MISSION_PLANNER_RACK_ID, rackId, 2)
-
+        self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "true", 1)
         # TODO: SMARTER IMPLEMENTATION PLS, SMH
         isNotAligned = True
         failCount = 0
@@ -263,6 +264,8 @@ class MissionExecutor:
 
             if (res == -1):
                 failCount += 1
+
+        self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "false", 1)
 
         return 0
 

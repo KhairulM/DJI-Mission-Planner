@@ -50,7 +50,7 @@ class MissionLoader:
                         Mission(MissionType.up_to, [levelHeight]))
 
                     missions.append(Mission(MissionType.align_with_barcode, [
-                                    "%s-%d" % (missionConfiguration["rack_id"][rackIdIdx], i+1 if fromBottom else len(levelHeights)-i)]))
+                                    "%s-%d" % (missionConfiguration["rack_ids"][rackIdIdx], i+1 if fromBottom else len(levelHeights)-i)]))
                     missions.append(Mission(MissionType.wait_for_cv))
 
                     if (i == len(levelHeights) - 1 and isTransitionToNextRack):

@@ -92,6 +92,8 @@ class MissionPlanner:
                     print("MissionPlanner: mission finished")
 
                 self.isStartMission = False
+                self.mqttClient.publish(
+                    TOPIC_MISSION_PLANNER_START_RESULT, "completed", 1)
                 continue
 
             result = self.missionExecutor.execute(
