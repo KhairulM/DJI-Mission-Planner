@@ -10,8 +10,10 @@ TOPIC_CV_RUN_DETECTION = "cv/run-detection"
 TOPIC_DJI_CONTROL = "dji/control"
 TOPIC_DJI_CONTROL_TAKEOFF = "dji/control/takeoff"
 TOPIC_DJI_CONTROL_RTH = "dji/control/rth"
+TOPIC_DJI_CONTROL_LAND = "dji/control/land"
 TOPIC_DJI_CONTROL_TAKEOFF_RESULT = "dji/control/takeoff/result"
 TOPIC_DJI_CONTROL_RTH_RESULT = "dji/control/rth/result"
+TOPIC_DJI_CONTROL_LAND_RESULT = "dji/control/land/result"
 TOPIC_DJI_STATUS_ALTITUDE = "dji/status/altitude"
 TOPIC_MISSION_PLANNER_RACK_ID = "mission-planner/rack-id"
 
@@ -104,6 +106,9 @@ class MissionExecutor:
 
             if (mission.type == MissionType.rth):
                 return self.sendRTH()
+
+            if (mission.type == MissionType.land):
+                return self.sendLand()
 
             if (mission.type == MissionType.align_with_barcode):
                 return self.alignWithBarcode(mission.argument[0])
@@ -221,6 +226,16 @@ class MissionExecutor:
         elif self.droneRthResult == "completed":
             return 0
 
+    def sendLand(self):
+        if (not self.mqttClient.is_connected()):
+            return -1
+
+        if (self.verbose):
+            print("MissionExecutor: Sending land comand")
+
+        self.droneLandResult = None
+        self.mqttClient.publish()
+
     def alignWithBarcode(self, rackId):
         if (not self.mqttClient.is_connected()):
             return -1
@@ -235,8 +250,8 @@ class MissionExecutor:
         failCount = 0
 
         while isNotAligned:
-            if (failCount >= 3):
-                return -1
+            # if (failCount >= 3):
+            #     return -1
 
             if (rackId not in self.arucoPos):
                 failCount += 1
@@ -296,7 +311,8 @@ class MissionExecutor:
             (TOPIC_CV_ARUCO_POSITION, 2),
             (TOPIC_DJI_STATUS_ALTITUDE, 2),
             (TOPIC_DJI_CONTROL_TAKEOFF_RESULT, 2),
-            (TOPIC_DJI_CONTROL_RTH_RESULT, 2)
+            (TOPIC_DJI_CONTROL_RTH_RESULT, 2),
+            (TOPIC_DJI_CONTROL_LAND_RESULT, 2)
         ])
 
     def onMqttDisconnect(self, client, userdata, rc):
@@ -311,7 +327,7 @@ class MissionExecutor:
 
     def onCvArucoPosition(self, client, userdata, msg):
         if self.verbose:
-            print("MissionExecutor: onCvArucoPosition:", msg.payload.decode)
+            print("MissionExecutor: onCvArucoPosition:", msg.payload.decode())
 
         self.arucoPos = json.loads(msg.payload.decode())
 
@@ -328,7 +344,7 @@ class MissionExecutor:
         self.droneRthResult = msg.payload.decode().lower()
 
     def onDJIAltitude(self, client, userdata, msg):
-        if (self.verbose):
-            print("MissionExecutor: onDJIAltitude:", msg.payload.decode())
+        # if (self.verbose):
+        #     print("MissionExecutor: onDJIAltitude:", msg.payload.decode())
 
         self.droneAltitude = float(msg.payload.decode())
