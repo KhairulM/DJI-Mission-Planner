@@ -45,6 +45,7 @@ class MissionExecutor:
         self.droneTakeoffResult = None
         self.droneRthResult = None
         self.arucoPos = []
+        self.cvStatus = None
 
         self.maxAlt = 0
         self.minAlt = 0
@@ -108,7 +109,7 @@ class MissionExecutor:
                 return self.alignWithBarcode(mission.argument[0])
 
             if (mission.type == MissionType.wait_for_cv):
-                return self.waitForCv()
+                return self.waitForCv(mission.argument[0])
 
         except Exception as e:
             print("[ERR] MissionExecutor: execute exception:", str(e))
@@ -265,7 +266,24 @@ class MissionExecutor:
             if (res == -1):
                 failCount += 1
 
+            self.arucoPos = []
+
         self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "false", 1)
+
+        return 0
+
+    def waitForCv(self, rackId):
+        if (self.verbose):
+            print("MissionExecutor: waitForCv: waiting for cv status to > 0")
+
+        maxtime = 8.0
+        startTime = time.time()
+
+        while self.cvStatus["status"] == 0 and time.time() - startTime < maxtime:
+            continue
+
+        if time.time() - startTime >= maxtime:
+            return -1
 
         return 0
 
@@ -288,6 +306,8 @@ class MissionExecutor:
     def onCvStatus(self, client, userdata, msg):
         if (self.verbose):
             print("MissionExecutor: onCvStatus:", msg.payload.decode())
+
+        self.cvStatus = json.loads(msg.payload.decode())
 
     def onCvArucoPosition(self, client, userdata, msg):
         if self.verbose:
