@@ -13,14 +13,18 @@ class MissionLoader:
     # Translate mission configuration to array of mission
     # Return: array of Mission, mission max altitude, and mission speed
     def load(self):
-        # url = "http://" + self.host + ":6868" + "/api/v1/config/" + self.missionId
-        # r = requests.get(url)
+        missionConfiguration = None
 
-        # if (r.status_code == 200):
-        #     missionConfiguration = r.json()
+        url = "http://" + self.host + ":6868" + "/api/v1/config/" + self.missionId
+        r = requests.get(url)
 
-        with open("./mission-configuration.example.json") as f:
-            missionConfiguration = json.load(f)
+        if (r.status_code != 200):
+            raise "Response status code: %d" % r.status_code
+
+        missionConfiguration = r.json()
+
+        # with open("./mission-configuration.example.json") as f:
+        #     missionConfiguration = json.load(f)
 
         maxAlt = float(missionConfiguration["max_altitude"])
         missionSpeed = float(missionConfiguration["mission_speed"])
