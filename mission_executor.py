@@ -16,6 +16,7 @@ TOPIC_DJI_CONTROL_RTH_RESULT = "dji/control/rth/result"
 TOPIC_DJI_CONTROL_LAND_RESULT = "dji/control/land/result"
 TOPIC_DJI_STATUS_ALTITUDE = "dji/status/altitude"
 TOPIC_MISSION_PLANNER_RACK_ID = "mission-planner/rack-id"
+TOPIC_MISSION_PLANNER_START_RESULT = "mission-planner/start/result"
 
 ALTITUDE_ERR = 0.3
 BOUNDARY_Y_HIGH = 720
@@ -83,6 +84,9 @@ class MissionExecutor:
         if (self.verbose):
             print("MissionExecutor: Executing mission:",
                   mission.typeString, str(mission.argument))
+
+        self.mqttClient.publish(
+            TOPIC_MISSION_PLANNER_START_RESULT, "%s %s" % (mission.typeString, str(mission.argument)), 2)
 
         try:
             if (mission.type == MissionType.up_to or
@@ -187,6 +191,9 @@ class MissionExecutor:
         if (self.verbose):
             print("MissionExecutor: Sending control data:", controlData)
 
+        self.mqttClient.publish(
+            TOPIC_MISSION_PLANNER_START_RESULT, "sending control data", 2)
+
         for i in range(self.freq):
             self.mqttClient.publish(TOPIC_DJI_CONTROL, str(controlData), 2)
             time.sleep(1.0/self.freq)
@@ -261,8 +268,8 @@ class MissionExecutor:
         failCount = 0
 
         while isNotAligned:
-            # if (failCount >= 3):
-            #     return -1
+            if (failCount >= 3):
+                return -1
 
             if (rackId not in self.arucoPos):
                 failCount += 1
@@ -283,18 +290,16 @@ class MissionExecutor:
             if (barcodePos[1] >= BOUNDARY_Y_HIGH):
                 isNotAligned = True
                 res |= self.sendControlData(
-                    [0.0, 0.0, 0.0, self.droneAltitude + 0.1])
+                    [0.0, 0.0, 0.0, self.droneAltitude - 0.1])
             if (barcodePos[1] <= BOUNDARY_Y_LOW):
                 isNotAligned = True
                 res |= self.sendControlData(
-                    [0.0, 0.0, 0.0, self.droneAltitude - 0.1])
+                    [0.0, 0.0, 0.0, self.droneAltitude + 0.1])
 
             if (res == -1):
                 failCount += 1
 
             self.arucoPos = []
-
-        self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "false", 1)
 
         return 0
 
@@ -305,8 +310,10 @@ class MissionExecutor:
         maxtime = 8.0
         startTime = time.time()
 
-        while self.cvStatus["status"] == 0 and time.time() - startTime < maxtime:
+        while self.cvStatus == None or (self.cvStatus["status"] == 0 and time.time() - startTime < maxtime):
             continue
+
+        self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "false", 1)
 
         if time.time() - startTime >= maxtime:
             return -1
