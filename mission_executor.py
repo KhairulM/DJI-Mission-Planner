@@ -42,10 +42,13 @@ class MissionExecutor:
             TOPIC_DJI_CONTROL_RTH_RESULT, self.onDJIRTHResult)
         self.mqttClient.message_callback_add(
             TOPIC_DJI_STATUS_ALTITUDE, self.onDJIAltitude)
+        self.mqttClient.message_callback_add(
+            TOPIC_DJI_CONTROL_LAND_RESULT, self.onDJILandResult)
 
         self.droneAltitude = 0.0
         self.droneTakeoffResult = None
         self.droneRthResult = None
+        self.droneLandResult = None
         self.arucoPos = []
         self.cvStatus = None
 
@@ -234,7 +237,15 @@ class MissionExecutor:
             print("MissionExecutor: Sending land comand")
 
         self.droneLandResult = None
-        self.mqttClient.publish()
+        self.mqttClient.publish(TOPIC_DJI_CONTROL_LAND, "true", 2)
+
+        while self.droneLandResult == None or self.droneLandResult == "started":
+            continue
+
+        if self.droneLandResult == "failed":
+            return -1
+        elif self.droneLandResult == "completed":
+            return 0
 
     def alignWithBarcode(self, rackId):
         if (not self.mqttClient.is_connected()):
@@ -342,6 +353,12 @@ class MissionExecutor:
             print("MissionExecutor: onDJIRTHResult:", msg.payload.decode())
 
         self.droneRthResult = msg.payload.decode().lower()
+
+    def onDJILandResult(self, client, userdata, msg):
+        if (self.verbose):
+            print("MissionExecutor: onDJILandResult:", msg.payload.decode())
+
+        self.droneLandResult = msg.payload.decode().lower()
 
     def onDJIAltitude(self, client, userdata, msg):
         # if (self.verbose):
