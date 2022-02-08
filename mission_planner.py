@@ -93,7 +93,7 @@ class MissionPlanner:
 
                 self.isStartMission = False
                 self.mqttClient.publish(
-                    TOPIC_MISSION_PLANNER_START_RESULT, "completed", 1)
+                    TOPIC_MISSION_PLANNER_START_RESULT, "completed", 1, True)
                 continue
 
             result = self.missionExecutor.execute(
@@ -142,7 +142,7 @@ class MissionPlanner:
 
             self.isMissionLoaded = True
             self.mqttClient.publish(
-                TOPIC_MISSION_PLANNER_MISSION_ID, self.missionId, 1)
+                TOPIC_MISSION_PLANNER_MISSION_ID, self.missionId, 1, True)
 
             if (self.verbose):
                 print("MissionPlanner: loadMission: mission loaded")
@@ -175,7 +175,7 @@ class MissionPlanner:
         self.isPauseMission = pause
 
         self.mqttClient.publish(TOPIC_MISSION_PLANNER_PAUSE_RESULT,
-                                "paused" if pause else "unpaused", 1)
+                                "paused" if pause else "unpaused", 1, True)
 
     def startLanding(self):
         if (self.verbose):
@@ -211,7 +211,7 @@ class MissionPlanner:
         self.isStartMission = msg.payload.decode().lower() == "true"
 
         self.mqttClient.publish(
-            TOPIC_MISSION_PLANNER_START_RESULT, "started" if self.isStartMission else "failed", 1)
+            TOPIC_MISSION_PLANNER_START_RESULT, "started" if self.isStartMission else "failed", 1, True)
 
     def onMissionPlannerPause(self, client, userdata, msg):
         if (self.verbose):

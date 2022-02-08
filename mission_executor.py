@@ -86,7 +86,7 @@ class MissionExecutor:
                   mission.typeString, str(mission.argument))
 
         self.mqttClient.publish(
-            TOPIC_MISSION_PLANNER_START_RESULT, "%s %s" % (mission.typeString, str(mission.argument)), 2)
+            TOPIC_MISSION_PLANNER_START_RESULT, "%s %s" % (mission.typeString, str(mission.argument)), 2, True)
 
         try:
             if (mission.type == MissionType.up_to or
@@ -192,7 +192,7 @@ class MissionExecutor:
             print("MissionExecutor: Sending control data:", controlData)
 
         self.mqttClient.publish(
-            TOPIC_MISSION_PLANNER_START_RESULT, "sending control data", 2)
+            TOPIC_MISSION_PLANNER_START_RESULT, "sending control data", 2, True)
 
         for i in range(self.freq):
             self.mqttClient.publish(TOPIC_DJI_CONTROL, str(controlData), 2)
@@ -261,7 +261,7 @@ class MissionExecutor:
         if (self.verbose):
             print("MissionExecutor: Aligning with barcode")
 
-        self.mqttClient.publish(TOPIC_MISSION_PLANNER_RACK_ID, rackId, 2)
+        self.mqttClient.publish(TOPIC_MISSION_PLANNER_RACK_ID, rackId, 2, True)
         # TODO: SMARTER IMPLEMENTATION PLS, SMH
         isNotAligned = True
         failCount = 0
@@ -306,7 +306,7 @@ class MissionExecutor:
         if (self.verbose):
             print("MissionExecutor: waitForCv: waiting for cv status to > 0")
 
-        self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "true", 1)
+        self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "true", 1, True)
 
         maxtime = 8.0
         startTime = time.time()
@@ -316,7 +316,7 @@ class MissionExecutor:
             endTime = time.time()
             continue
 
-        self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "false", 1)
+        self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "false", 1, True)
 
         if endTime - startTime >= maxtime:
             return -1
