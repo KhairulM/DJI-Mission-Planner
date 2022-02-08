@@ -262,7 +262,6 @@ class MissionExecutor:
             print("MissionExecutor: Aligning with barcode")
 
         self.mqttClient.publish(TOPIC_MISSION_PLANNER_RACK_ID, rackId, 2)
-        self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "true", 1)
         # TODO: SMARTER IMPLEMENTATION PLS, SMH
         isNotAligned = True
         failCount = 0
@@ -307,15 +306,19 @@ class MissionExecutor:
         if (self.verbose):
             print("MissionExecutor: waitForCv: waiting for cv status to > 0")
 
+        self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "true", 1)
+
         maxtime = 8.0
         startTime = time.time()
+        endTime = time.time()
 
-        while self.cvStatus == None or (self.cvStatus["status"] == 0 and time.time() - startTime < maxtime):
+        while self.cvStatus == None or (self.cvStatus["status"] == 0 and endTime - startTime < maxtime):
+            endTime = time.time()
             continue
 
         self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "false", 1)
 
-        if time.time() - startTime >= maxtime:
+        if endTime - startTime >= maxtime:
             return -1
 
         return 0
