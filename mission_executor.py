@@ -89,8 +89,7 @@ class MissionExecutor:
             TOPIC_MISSION_PLANNER_START_RESULT, "%s %s" % (mission.typeString, str(mission.argument)), 2, True)
 
         try:
-            if (mission.type == MissionType.up_to or
-                    mission.type == MissionType.down_to):
+            if (mission.type == MissionType.wait_for_alt):
                 return self.moveZ(abs(mission.argument[0]))
 
             if (mission.type == MissionType.up):

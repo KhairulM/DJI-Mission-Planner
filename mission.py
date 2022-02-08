@@ -14,10 +14,8 @@ class Mission:
         self.typeString = "undefined"
         self.argument = argument
 
-        if (self.type == MissionType.up_to):
-            self.typeString = "up to"
-        elif (self.type == MissionType.down_to):
-            self.typeString = "down to"
+        if (self.type == MissionType.wait_for_alt):
+            self.typeString = "wait for alt"
         elif (self.type == MissionType.up):
             self.typeString = "up"
         elif (self.type == MissionType.down):

@@ -51,7 +51,7 @@ class MissionLoader:
             if (isScan):
                 for i, levelHeight in enumerate(levelHeights) if fromBottom else enumerate(reversed(levelHeights)):
                     missions.append(
-                        Mission(MissionType.up_to, [levelHeight]))
+                        Mission(MissionType.wait_for_alt, [levelHeight]))
 
                     # missions.append(Mission(MissionType.align_with_barcode, [
                     #                 "%s-%d" % (missionConfiguration["rack_ids"][rackIdIdx], i+1 if fromBottom else len(levelHeights)-i)]))
