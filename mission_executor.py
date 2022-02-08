@@ -18,7 +18,7 @@ TOPIC_DJI_STATUS_ALTITUDE = "dji/status/altitude"
 TOPIC_MISSION_PLANNER_RACK_ID = "mission-planner/rack-id"
 TOPIC_MISSION_PLANNER_START_RESULT = "mission-planner/start/result"
 
-ALTITUDE_ERR = 0.3
+ALTITUDE_ERR = 0.1
 BOUNDARY_Y_HIGH = 720
 BOUNDARY_Y_LOW = 576
 BOUNDARY_X_HIGH = 576
@@ -160,13 +160,10 @@ class MissionExecutor:
     def moveZ(self, alt):
         alt = min(max(alt, self.minAlt), self.maxAlt)
 
-        res = self.sendControlData([0.0, 0.0, 0.0, alt])
-
-        if (res != 0):
-            return res
+        res = 0
 
         while abs(self.droneAltitude - alt) > ALTITUDE_ERR:
-            continue
+            res |= self.sendControlData([0.0, 0.0, 0.0, alt])
 
         return res
 
@@ -194,11 +191,9 @@ class MissionExecutor:
         self.mqttClient.publish(
             TOPIC_MISSION_PLANNER_START_RESULT, "sending control data", 2, True)
 
-        self.mqttClient.publish(TOPIC_DJI_CONTROL, str(controlData), 2)
-
-        # for i in range(self.freq):
-        #     self.mqttClient.publish(TOPIC_DJI_CONTROL, str(controlData), 2)
-        #     time.sleep(1.0/self.freq)
+        for i in range(self.freq):
+            self.mqttClient.publish(TOPIC_DJI_CONTROL, str(controlData), 2)
+            time.sleep(1.0/self.freq)
 
         return 0
 
