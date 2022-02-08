@@ -65,17 +65,20 @@ class MissionPlanner:
             TOPIC_MISSION_PLANNER_RESTART, self.onMissionPlannerRestart)
 
     def start(self):
+        first = True
         missionFailCount = 0
 
         self.connect()
-        self.loadMission()
 
         while True:
             if (self.isPauseMission or
                 not self.isStartMission or
-                not self.isMissionLoaded or
                     not self.mqttClient.is_connected()):
                 continue
+
+            if (first):
+                self.loadMission()
+                first = False
 
             # DEFAULT ACTION TO TAKE IF MISSION FAILED MULTIPLE TIMES
             if missionFailCount > 3:
