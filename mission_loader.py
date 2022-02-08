@@ -19,7 +19,7 @@ class MissionLoader:
         r = requests.get(url)
 
         if (r.status_code != 200):
-            raise "Response status code: %d" % r.status_code
+            raise Exception("Response status code: %d" % r.status_code)
 
         missionConfiguration = r.json()
 
