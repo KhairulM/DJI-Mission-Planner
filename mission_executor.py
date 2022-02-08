@@ -188,11 +188,9 @@ class MissionExecutor:
             print("MissionExecutor: Sending control data:", controlData)
 
         self.mqttClient.publish(
-            TOPIC_MISSION_PLANNER_START_RESULT, "sending control data", 2, True)
+            TOPIC_MISSION_PLANNER_START_RESULT, "sending control data: " + str(controlData), 2, True)
 
-        for i in range(self.freq):
-            self.mqttClient.publish(TOPIC_DJI_CONTROL, str(controlData), 2)
-            time.sleep(1.0/self.freq)
+        self.mqttClient.publish(TOPIC_DJI_CONTROL, str(controlData), 2)
 
         return 0
 
