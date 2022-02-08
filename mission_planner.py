@@ -81,7 +81,7 @@ class MissionPlanner:
                 first = False
 
             # DEFAULT ACTION TO TAKE IF MISSION FAILED MULTIPLE TIMES
-            if missionFailCount > 3:
+            if missionFailCount >= 3:
                 self.pauseMissionExecution(True)
                 self.startLanding()
                 missionFailCount = 0
