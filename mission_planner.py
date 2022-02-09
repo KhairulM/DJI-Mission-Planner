@@ -261,7 +261,7 @@ parser.add_argument(
 parser.add_argument('-id', help="ID of the mission to be loaded",
                     dest="missionId", type=str, default="latest")
 parser.add_argument('-f', help="The frequency for the execcutor to send control data (5 - 25)",
-                    dest="freq", type=int, default=5)
+                    dest="freq", type=int, default=10)
 parser.add_argument(
     '-v', help="Set the logging level to verbose", dest="verbose", action="store_true")
 parser.set_defaults(verbose=True)
