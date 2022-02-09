@@ -251,20 +251,20 @@ class MissionPlanner:
 parser = argparse.ArgumentParser()
 parser.description = "Mission Planner for Panasonic DJI Drone"
 parser.add_argument('--host', help="Hostname for MQTT broker and the backend server",
-                    type=str, required=True)
+                    type=str, default="localhost")
 parser.add_argument(
     '-p', help="Port number for MQTT broker", dest="port", type=int, default=1883)
 parser.add_argument(
-    '-u', help="Username for MQTT authentication", dest="username", type=str, default="")
+    '-u', help="Username for MQTT authentication", dest="username", type=str, default="admin")
 parser.add_argument(
-    '-P', help="Password for MQTT authentication", dest="password", type=str, default=None)
+    '-P', help="Password for MQTT authentication", dest="password", type=str, default="1234")
 parser.add_argument('-id', help="ID of the mission to be loaded",
                     dest="missionId", type=str, default="latest")
 parser.add_argument('-f', help="The frequency for the execcutor to send control data (5 - 25)",
                     dest="freq", type=int, default=5)
 parser.add_argument(
     '-v', help="Set the logging level to verbose", dest="verbose", action="store_true")
-parser.set_defaults(verbose=False)
+parser.set_defaults(verbose=True)
 args = parser.parse_args()
 
 if __name__ == "__main__":
