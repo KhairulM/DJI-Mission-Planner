@@ -160,9 +160,14 @@ class MissionExecutor:
         alt = min(max(alt, self.minAlt), self.maxAlt)
 
         res = 0
+        start = time.time()
+        end = time.time()
+        maxTime = 15.0
 
-        while abs(self.droneAltitude - alt) > ALTITUDE_ERR:
+        while abs(self.droneAltitude - alt) > ALTITUDE_ERR and end - start < maxTime:
             res |= self.sendControlData([0.0, 0.0, 0.0, alt])
+            time.sleep(1)
+            end = time.time()
 
         return res
 
