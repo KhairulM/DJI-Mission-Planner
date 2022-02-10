@@ -8,32 +8,37 @@
   "max_altitude": 6.0,
   "sweep_config": [
     1,
+    2,
     3
   ],
   "rack_ids": [
     "a1",
+    "a2",
     "a3"
   ],
   "rack_size": [
     {
       "width": 2.7,
       "level_height": [
-        1.6,
-        1.75
+        1.0,
+        1.0,
+        1.0
       ]
     },
     {
       "width": 2.7,
       "level_height": [
         1.0,
-        1.5
+        1.0,
+        1.0
       ]
     },
     {
       "width": 2.7,
       "level_height": [
         1.0,
-        1.5
+        1.0,
+        1.0
       ]
     }
   ]

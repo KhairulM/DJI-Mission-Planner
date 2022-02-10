@@ -70,7 +70,6 @@ class MissionLoader:
                         Mission(MissionType.right, [rackSize[rack]["width"] / 2 + rackSize[rack+1]["width"]/2]))
 
         # rth after finishing missions
-        missions.append(Mission(MissionType.rth))
         missions.append(Mission(MissionType.land))
 
         if (self.verbose):
