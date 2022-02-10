@@ -170,7 +170,7 @@ class MissionExecutor:
         if failCount >= 3:
             return -1
 
-        return res
+        return 0
 
     def rotate(self, degree):
         rotationSpeed = 5.0
