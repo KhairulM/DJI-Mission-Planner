@@ -175,7 +175,7 @@ class MissionExecutor:
     def rotate(self, degree):
         rotationSpeed = 5.0
         controlData = [0.0, 0.0, rotationSpeed if degree >
-                       0 else -rotationSpeed, 0.0]
+                       0 else -rotationSpeed, self.droneAltitude]
 
         second = abs(degree)/rotationSpeed
         res = 0
