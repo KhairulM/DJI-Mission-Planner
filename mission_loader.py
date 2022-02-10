@@ -62,7 +62,7 @@ class MissionLoader:
                         missions.append(
                             Mission(MissionType.right, [rackSize[rack]["width"] / 2 + rackSize[rack+1]["width"]/2]))
 
-                fromBottom = False
+                fromBottom = not fromBottom
                 rackIdIdx += 1
             else:
                 if (isTransitionToNextRack):
