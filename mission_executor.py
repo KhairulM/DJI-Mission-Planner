@@ -159,10 +159,16 @@ class MissionExecutor:
     def moveZ(self, alt):
         alt = min(max(alt, self.minAlt), self.maxAlt)
 
-        res = 0
+        failCount = 0
 
-        while abs(self.droneAltitude - alt) > ALTITUDE_ERR:
-            res |= self.sendControlData([0.0, 0.0, 0.0, alt])
+        while failCount < 3 and abs(self.droneAltitude - alt) > ALTITUDE_ERR:
+            res = self.sendControlData([0.0, 0.0, 0.0, alt])
+
+            if res == -1:
+                failCount += 1
+
+        if failCount >= 3:
+            return -1
 
         return res
 
