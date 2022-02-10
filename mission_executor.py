@@ -130,7 +130,7 @@ class MissionExecutor:
         if (speed == 0 or distance == 0):
             return 0
 
-        controlData = [speed, 0.0, 0.0, 0.0]
+        controlData = [speed, 0.0, 0.0, self.droneAltitude]
         second = distance/abs(speed)
 
         res = 0
@@ -145,7 +145,7 @@ class MissionExecutor:
         if (speed == 0 or distance == 0):
             return 0
 
-        controlData = [0.0, speed, 0.0, 0.0]
+        controlData = [0.0, speed, 0.0, self.droneAltitude]
         second = distance/abs(speed)
 
         res = 0
