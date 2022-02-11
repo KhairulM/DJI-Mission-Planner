@@ -14,25 +14,25 @@ class Mission:
         self.typeString = "undefined"
         self.argument = argument
 
-        if (self.type == MissionType.wait_for_alt):
+        if self.type == MissionType.wait_for_alt:
             self.typeString = "wait for alt"
-        elif (self.type == MissionType.up):
+        elif self.type == MissionType.up:
             self.typeString = "up"
-        elif (self.type == MissionType.down):
+        elif self.type == MissionType.down:
             self.typeString = "down"
-        elif (self.type == MissionType.right):
+        elif self.type == MissionType.right:
             self.typeString = "right"
-        elif (self.type == MissionType.left):
+        elif self.type == MissionType.left:
             self.typeString = "left"
-        elif (self.type == MissionType.rotate):
+        elif self.type == MissionType.rotate:
             self.typeString = "rotate"
-        elif (self.type == MissionType.wait_for_cv):
+        elif self.type == MissionType.wait_for_cv:
             self.typeString = "wait for cv"
-        elif (self.type == MissionType.takeoff):
+        elif self.type == MissionType.takeoff:
             self.typeString = "takeoff"
-        elif (self.type == MissionType.rth):
+        elif self.type == MissionType.rth:
             self.typeString = "rth"
-        elif (self.type == MissionType.land):
+        elif self.type == MissionType.land:
             self.typeString = "land"
-        elif (self.type == MissionType.align_with_barcode):
+        elif self.type == MissionType.align_with_barcode:
             self.typeString = "align with barcode"
