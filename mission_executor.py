@@ -7,6 +7,8 @@ from mission_type import MissionType
 TOPIC_CV_STATUS = "cv/status"
 TOPIC_CV_ARUCO_POSITION = "cv/aruco-position"
 TOPIC_CV_RUN_DETECTION = "cv/run-detection"
+TOPIC_DJI_GIMBAL = "dji/gimbal"
+TOPIC_DJI_GIMBAL_RESET = "dji/gimbal/reset"
 TOPIC_DJI_CONTROL = "dji/control"
 TOPIC_DJI_CONTROL_TAKEOFF = "dji/control/takeoff"
 TOPIC_DJI_CONTROL_RTH = "dji/control/rth"
@@ -55,7 +57,7 @@ class MissionExecutor:
         self.droneTakeoffResult = None
         self.droneRthResult = None
         self.droneLandResult = None
-        self.arucoPos = []
+        self.arucoPos = dict()
         self.cvStatus = None
 
         self.maxAlt = 0
@@ -301,6 +303,7 @@ class MissionExecutor:
                 (barcodePos[0][0] + barcodePos[1][0]) / 2,
                 (barcodePos[0][1] + barcodePos[1][1]) / 2,
             ]
+
             res = 0
             isNotAligned = False
 
@@ -320,7 +323,7 @@ class MissionExecutor:
             if res == -1:
                 failCount += 1
 
-            self.arucoPos = []
+            self.arucoPos = dict()
 
         return 0
 
@@ -330,17 +333,29 @@ class MissionExecutor:
 
         self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "true", 1, True)
 
-        maxtime = 8.0
+        maxGimbalPitchAngle = 70.0
+
+        maxtime = 10.0
         startTime = time.time()
         endTime = time.time()
 
         while self.cvStatus == None or (
             self.cvStatus["status"] == 0 and endTime - startTime < maxtime
         ):
+            if isHighestLevel:
+                self.mqttClient.publish(
+                    TOPIC_DJI_GIMBAL,
+                    (endTime - startTime) / maxtime * maxGimbalPitchAngle,
+                    2,
+                )
+
             endTime = time.time()
             continue
 
         self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "false", 1, True)
+
+        self.mqttClient.publish(TOPIC_DJI_GIMBAL_RESET, "true", 2)
+        self.mqttClient.publish(TOPIC_DJI_GIMBAL_RESET, "true", 2)
 
         if endTime - startTime >= maxtime:
             return -1
