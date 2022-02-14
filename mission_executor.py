@@ -340,7 +340,7 @@ class MissionExecutor:
         endTime = time.time()
 
         while self.cvStatus == None or (
-            self.cvStatus["status"] == 0 and endTime - startTime < maxtime
+            self.cvStatus["status"] == 1 and endTime - startTime < maxtime
         ):
             if isHighestLevel:
                 self.mqttClient.publish(
@@ -350,6 +350,7 @@ class MissionExecutor:
                 )
 
             endTime = time.time()
+            self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "true", 1, True)
             continue
 
         self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "false", 1, True)
