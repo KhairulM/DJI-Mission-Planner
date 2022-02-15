@@ -350,10 +350,10 @@ class MissionExecutor:
                 )
 
             endTime = time.time()
-            self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "true", 1, True)
+            self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "true", 1)
             continue
 
-        self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "false", 1, True)
+        self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "false", 1)
 
         self.mqttClient.publish(TOPIC_DJI_GIMBAL_RESET, "true", 2)
         self.mqttClient.publish(TOPIC_DJI_GIMBAL_RESET, "true", 2)
