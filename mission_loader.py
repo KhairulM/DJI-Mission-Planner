@@ -41,7 +41,7 @@ class MissionLoader:
         )
 
         sweepBool = {}
-        for rack in range(startPoint, endPoint):
+        for rack in range(startPoint, endPoint + 1):
             sweepBool[rack] = rack in sweepConfig
 
         missions = []
