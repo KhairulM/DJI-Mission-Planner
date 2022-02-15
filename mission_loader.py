@@ -31,6 +31,8 @@ class MissionLoader:
         missionSpeed = float(missionConfiguration["mission_speed"])
         sweepConfig = missionConfiguration["sweep_config"]
         rackSize = missionConfiguration["rack_size"]
+        startPoint = missionConfiguration["start_point"]
+        endPoint = missionConfiguration["end_point"]
 
         defaultTransitionMission = (
             MissionType.right
@@ -38,9 +40,9 @@ class MissionLoader:
             else MissionType.left
         )
 
-        sweepBool = []
-        for rack in range(1, sweepConfig[-1] + 1):
-            sweepBool.append(rack in sweepConfig)
+        sweepBool = {}
+        for rack in range(startPoint, endPoint):
+            sweepBool[rack] = rack in sweepConfig
 
         missions = []
 
@@ -51,8 +53,10 @@ class MissionLoader:
         rackIdIdx = 0
 
         for rack, isScan in enumerate(sweepBool):
-            isTransitionToNextRack = rack < len(sweepBool) - 1
-            levelHeights = self.transformLevelHeights(rackSize[rack]["level_height"])
+            isTransitionToNextRack = rack < endPoint
+            levelHeights = self.transformLevelHeights(
+                rackSize[rack - startPoint]["level_height"]
+            )
 
             if isScan:
                 for i, levelHeight in (
@@ -98,8 +102,8 @@ class MissionLoader:
                             Mission(
                                 defaultTransitionMission,
                                 [
-                                    rackSize[rack]["width"] / 2
-                                    + rackSize[rack + 1]["width"] / 2
+                                    rackSize[rack - startPoint]["width"] / 2
+                                    + rackSize[rack - startPoint + 1]["width"] / 2
                                 ],
                             )
                         )
@@ -112,8 +116,8 @@ class MissionLoader:
                         Mission(
                             defaultTransitionMission,
                             [
-                                rackSize[rack]["width"] / 2
-                                + rackSize[rack + 1]["width"] / 2
+                                rackSize[rack - startPoint]["width"] / 2
+                                + rackSize[rack - startPoint + 1]["width"] / 2
                             ],
                         )
                     )
