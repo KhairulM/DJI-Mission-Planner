@@ -38,6 +38,7 @@ class MissionPlanner:
         self.isMissionLoaded = False
         self.isStartMission = False
         self.isPauseMission = False
+        self.isLoadMission = True
 
         self.currentMissionIndex = 0
         self.MISSIONS = []
@@ -70,7 +71,6 @@ class MissionPlanner:
         )
 
     def start(self):
-        first = True
         missionFailCount = 0
 
         self.connect()
@@ -83,9 +83,9 @@ class MissionPlanner:
             ):
                 continue
 
-            if first:
+            if self.isLoadMission:
                 self.loadMission()
-                first = False
+                self.isLoadMission = False
 
             # DEFAULT ACTION TO TAKE IF MISSION FAILED MULTIPLE TIMES
             if missionFailCount >= 3:
@@ -248,6 +248,7 @@ class MissionPlanner:
         self.currentMissionIndex = 0
         self.pauseMissionExecution(False)
         self.isStartMission = False
+        self.isLoadMission = True
 
         client.publish(TOPIC_MISSION_PLANNER_RESTART_RESULT, "restarted", 2)
 
