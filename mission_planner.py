@@ -247,7 +247,7 @@ class MissionPlanner:
 
         self.currentMissionIndex = 0
         self.pauseMissionExecution(False)
-        self.isStartMission = True
+        self.isStartMission = False
 
         client.publish(TOPIC_MISSION_PLANNER_RESTART_RESULT, "restarted", 2)
 
