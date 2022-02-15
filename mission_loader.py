@@ -15,16 +15,16 @@ class MissionLoader:
     def load(self):
         missionConfiguration = None
 
-        # url = "http://" + self.host + ":6868" + "/api/v1/config/" + self.missionId
-        # r = requests.get(url)
+        url = "http://" + self.host + ":6868" + "/api/v1/config/" + self.missionId
+        r = requests.get(url)
 
-        # if (r.status_code != 200):
-        #     raise Exception("Response status code: %d" % r.status_code)
+        if r.status_code != 200:
+            raise Exception("Response status code: %d" % r.status_code)
 
-        # missionConfiguration = r.json()
+        missionConfiguration = r.json()
 
-        with open("./mission-configuration.example.json") as f:
-            missionConfiguration = json.load(f)
+        # with open("./mission-configuration.example.json") as f:
+        #     missionConfiguration = json.load(f)
 
         maxAlt = float(missionConfiguration["max_altitude"])
         minAlt = float(missionConfiguration["min_altitude"])
