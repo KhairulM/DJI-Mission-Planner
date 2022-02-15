@@ -52,7 +52,7 @@ class MissionLoader:
         fromBottom = True
         rackIdIdx = 0
 
-        for rack, isScan in enumerate(sweepBool):
+        for rack, isScan in sweepBool.items():
             isTransitionToNextRack = rack < endPoint
             levelHeights = self.transformLevelHeights(
                 rackSize[rack - startPoint]["level_height"]
