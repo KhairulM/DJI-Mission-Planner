@@ -15,16 +15,16 @@ class MissionLoader:
     def load(self):
         missionConfiguration = None
 
-        url = "http://" + self.host + ":6868" + "/api/v1/config/" + self.missionId
-        r = requests.get(url)
+        # url = "http://" + self.host + ":6868" + "/api/v1/config/" + self.missionId
+        # r = requests.get(url)
 
-        if r.status_code != 200:
-            raise Exception("Response status code: %d" % r.status_code)
+        # if r.status_code != 200:
+        #     raise Exception("Response status code: %d" % r.status_code)
 
-        missionConfiguration = r.json()
+        # missionConfiguration = r.json()
 
-        # with open("./mission-configuration.example.json") as f:
-        #     missionConfiguration = json.load(f)
+        with open("./mission-configuration.example.json") as f:
+            missionConfiguration = json.load(f)
 
         maxAlt = float(missionConfiguration["max_altitude"])
         minAlt = float(missionConfiguration["min_altitude"])
@@ -33,6 +33,7 @@ class MissionLoader:
         rackSize = missionConfiguration["rack_size"]
         startPoint = missionConfiguration["start_point"]
         endPoint = missionConfiguration["end_point"]
+        turningPoint = missionConfiguration["turning_point"]
 
         defaultTransitionMission = (
             MissionType.right
@@ -41,7 +42,7 @@ class MissionLoader:
         )
 
         sweepBool = {}
-        for rack in range(startPoint, endPoint + 1):
+        for rack in range(startPoint, max(sweepConfig) + 1):
             sweepBool[rack] = rack in sweepConfig
 
         missions = []
@@ -50,15 +51,14 @@ class MissionLoader:
         missions.append(Mission(MissionType.takeoff))
 
         fromBottom = True
-        rackIdIdx = 0
 
-        for rack, isScan in sweepBool.items():
-            isTransitionToNextRack = rack < endPoint
+        for index, rack in enumerate(sweepConfig):
+            isTransitionToNextRack = rack != endPoint
             levelHeights = self.transformLevelHeights(
                 rackSize[rack - startPoint]["level_height"]
             )
 
-            if isScan:
+            if sweepBool[rack]:
                 for i, levelHeight in (
                     enumerate(levelHeights)
                     if fromBottom
@@ -76,7 +76,7 @@ class MissionLoader:
                     #         [
                     #             "%s-%d"
                     #             % (
-                    #                 missionConfiguration["rack_ids"][rackIdIdx],
+                    #                 missionConfiguration["rack_ids"][index],
                     #                 i + 1 if fromBottom else len(levelHeights) - i,
                     #             )
                     #         ],
@@ -89,7 +89,7 @@ class MissionLoader:
                     #         [
                     #             "%s-%d"
                     #             % (
-                    #                 missionConfiguration["rack_ids"][rackIdIdx],
+                    #                 missionConfiguration["rack_ids"][index],
                     #                 i + 1 if fromBottom else len(levelHeights) - i,
                     #             ),
                     #             isHighestLevel,
@@ -97,21 +97,12 @@ class MissionLoader:
                     #     )
                     # )
 
-                    if i == len(levelHeights) - 1 and isTransitionToNextRack:
-                        missions.append(
-                            Mission(
-                                defaultTransitionMission,
-                                [
-                                    rackSize[rack - startPoint]["width"] / 2
-                                    + rackSize[rack - startPoint + 1]["width"] / 2
-                                ],
-                            )
-                        )
-
                 fromBottom = not fromBottom
-                rackIdIdx += 1
-            else:
-                if isTransitionToNextRack:
+
+            if isTransitionToNextRack:
+                if rack == turningPoint:
+                    missions.append(Mission(MissionType.rotate, [180.0]))
+                else:
                     missions.append(
                         Mission(
                             defaultTransitionMission,
