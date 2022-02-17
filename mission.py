@@ -36,3 +36,5 @@ class Mission:
             self.typeString = "land"
         elif self.type == MissionType.align_with_barcode:
             self.typeString = "align with barcode"
+        elif self.type == MissionType.publish_rack_id:
+            self.typeString = "publish rack id"

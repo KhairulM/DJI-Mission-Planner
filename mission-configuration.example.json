@@ -8,13 +8,83 @@
   "mission_speed": 0.5,
   "max_altitude": 6.0,
   "min_altitude": 0.3,
-  "orientation": "left",
+  "orientation": "right",
   "sweep_config": [
-    1,
-    2,
-    6,
-    5,
-    4
+    {
+      "rack": 1,
+      "rack_id": "a1",
+      "rack_size": {
+        "width": 2.7,
+        "level_height": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "scan": true
+    },
+    {
+      "rack": 2,
+      "rack_id": "a2",
+      "rack_size": {
+        "width": 2.7,
+        "level_height": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "scan": true
+    },
+    {
+      "rack": 3,
+      "rack_id": "a3",
+      "rack_size": {
+        "width": 2.7,
+        "level_height": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "scan": false
+    },
+    {
+      "rack": 6,
+      "rack_id": "b6",
+      "rack_size": {
+        "width": 1.0,
+        "level_height": [
+          1.0,
+          1.0
+        ]
+      },
+      "scan": true
+    },
+    {
+      "rack": 5,
+      "rack_id": "b5",
+      "rack_size": {
+        "width": 1.0,
+        "level_height": [
+          1.0,
+          1.0
+        ]
+      },
+      "scan": true
+    },
+    {
+      "rack": 4,
+      "rack_id": "a4",
+      "rack_size": {
+        "width": 1.0,
+        "level_height": [
+          1.0,
+          1.0
+        ]
+      },
+      "scan": true
+    }
   ],
   "rack_ids": [
     "a1",
@@ -22,52 +92,5 @@
     "b6",
     "b5",
     "b4"
-  ],
-  "rack_size": [
-    {
-      "width": 2.7,
-      "level_height": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    {
-      "width": 2.7,
-      "level_height": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    {
-      "width": 2.7,
-      "level_height": [
-        1.0,
-        1.0,
-        1.0
-      ]
-    },
-    {
-      "width": 1.0,
-      "level_height": [
-        1.0,
-        1.0
-      ]
-    },
-    {
-      "width": 1.0,
-      "level_height": [
-        1.0,
-        1.0
-      ]
-    },
-    {
-      "width": 1.0,
-      "level_height": [
-        1.0,
-        1.0
-      ]
-    }
   ]
 }

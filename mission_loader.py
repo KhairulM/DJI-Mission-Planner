@@ -15,35 +15,25 @@ class MissionLoader:
     def load(self):
         missionConfiguration = None
 
-        # url = "http://" + self.host + ":6868" + "/api/v1/config/" + self.missionId
-        # r = requests.get(url)
+        url = "http://" + self.host + ":6868" + "/api/v1/config/" + self.missionId
+        r = requests.get(url)
 
-        # if r.status_code != 200:
-        #     raise Exception("Response status code: %d" % r.status_code)
+        if r.status_code != 200:
+            raise Exception("Response status code: %d" % r.status_code)
 
-        # missionConfiguration = r.json()
+        missionConfiguration = r.json()
 
-        with open("./mission-configuration.example.json") as f:
-            missionConfiguration = json.load(f)
+        # with open("./mission-configuration.example.json") as f:
+        #     missionConfiguration = json.load(f)
 
         maxAlt = float(missionConfiguration["max_altitude"])
         minAlt = float(missionConfiguration["min_altitude"])
         missionSpeed = float(missionConfiguration["mission_speed"])
         sweepConfig = missionConfiguration["sweep_config"]
-        rackSize = missionConfiguration["rack_size"]
-        startPoint = missionConfiguration["start_point"]
         endPoint = missionConfiguration["end_point"]
         turningPoint = missionConfiguration["turning_point"]
 
-        defaultTransitionMission = (
-            MissionType.right
-            if missionConfiguration["orientation"] == "left"
-            else MissionType.left
-        )
-
-        sweepBool = {}
-        for rack in range(startPoint, max(sweepConfig) + 1):
-            sweepBool[rack] = rack in sweepConfig
+        defaultTransitionMission = MissionType[missionConfiguration["orientation"]]
 
         missions = []
 
@@ -52,66 +42,88 @@ class MissionLoader:
 
         fromBottom = True
 
-        for index, rack in enumerate(sweepConfig):
-            isTransitionToNextRack = rack != endPoint
-            levelHeights = self.transformLevelHeights(
-                rackSize[rack - startPoint]["level_height"]
-            )
+        for index, sweep in enumerate(sweepConfig):
+            rackSize = sweep["rack_size"]
 
-            if sweepBool[rack]:
+            levelHeights = self.transformLevelHeights(rackSize["level_height"], maxAlt)
+
+            if sweep["scan"]:
                 for i, levelHeight in (
                     enumerate(levelHeights)
                     if fromBottom
                     else enumerate(reversed(levelHeights))
                 ):
+                    missions.append(Mission(MissionType.wait_for_alt, [levelHeight]))
+
+                    missions.append(
+                        Mission(
+                            MissionType.publish_rack_id,
+                            [
+                                "%s-%d"
+                                % (
+                                    sweep["rack_id"],
+                                    i + 1 if fromBottom else len(levelHeights) - i,
+                                )
+                            ],
+                        )
+                    )
+
+                    missions.append(
+                        Mission(
+                            MissionType.align_with_barcode,
+                            [
+                                "%s-%d"
+                                % (
+                                    sweep["rack_id"],
+                                    i + 1 if fromBottom else len(levelHeights) - i,
+                                )
+                            ],
+                        )
+                    )
+
                     isHighestLevel = (
                         (i == len(levelHeights) - 1) if fromBottom else (i == 0)
                     )
 
-                    missions.append(Mission(MissionType.wait_for_alt, [levelHeight]))
-
-                    # missions.append(
-                    #     Mission(
-                    #         MissionType.align_with_barcode,
-                    #         [
-                    #             "%s-%d"
-                    #             % (
-                    #                 missionConfiguration["rack_ids"][index],
-                    #                 i + 1 if fromBottom else len(levelHeights) - i,
-                    #             )
-                    #         ],
-                    #     )
-                    # )
-
-                    # missions.append(
-                    #     Mission(
-                    #         MissionType.wait_for_cv,
-                    #         [
-                    #             "%s-%d"
-                    #             % (
-                    #                 missionConfiguration["rack_ids"][index],
-                    #                 i + 1 if fromBottom else len(levelHeights) - i,
-                    #             ),
-                    #             isHighestLevel,
-                    #         ],
-                    #     )
-                    # )
+                    missions.append(
+                        Mission(
+                            MissionType.wait_for_cv,
+                            [isHighestLevel],
+                        )
+                    )
 
                 fromBottom = not fromBottom
 
-            if isTransitionToNextRack:
-                if rack == turningPoint:
+            if sweep["rack"] != endPoint:
+                if sweep["rack"] == turningPoint:
                     missions.append(Mission(MissionType.rotate, [180.0]))
                 else:
                     missions.append(
                         Mission(
                             defaultTransitionMission,
                             [
-                                rackSize[rack - startPoint]["width"] / 2
-                                + rackSize[rack - startPoint + 1]["width"] / 2
+                                rackSize["width"] / 2
+                                + sweepConfig[index + 1]["rack_size"]["width"] / 2
                             ],
                         )
                     )
+
+                missions.append(
+                    Mission(
+                        MissionType.publish_rack_id,
+                        [
+                            "%s-%d"
+                            % (
+                                sweepConfig[index + 1]["rack_id"],
+                                1
+                                if fromBottom
+                                else len(
+                                    sweepConfig[index + 1]["rack_size"]["level_height"]
+                                ),
+                            )
+                        ],
+                    )
+                )
 
         # land after finishing missions
         missions.append(Mission(MissionType.land))
@@ -126,14 +138,13 @@ class MissionLoader:
             "mission_speed": missionSpeed,
         }
 
-    def transformLevelHeights(self, levelHeights):
+    def transformLevelHeights(self, levelHeights, maxAlt):
         newLevelHeights = []
         sum = 0
 
-        for i, height in enumerate(levelHeights):
+        for height in levelHeights:
+            alt = min(sum + height / 2, maxAlt)
+            newLevelHeights.append(alt)
             sum += height
-            newLevelHeights.append(
-                sum - (height / 2 if i + 1 < len(levelHeights) else height)
-            )
 
         return newLevelHeights

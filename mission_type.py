@@ -14,3 +14,4 @@ class MissionType(enum.Enum):
     rth = 9
     land = 10
     align_with_barcode = 11
+    publish_rack_id = 12

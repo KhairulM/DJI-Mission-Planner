@@ -134,7 +134,10 @@ class MissionExecutor:
                 return self.alignWithBarcode(mission.argument[0])
 
             if mission.type == MissionType.wait_for_cv:
-                return self.waitForCv(mission.argument[0], mission.argument[1])
+                return self.waitForCv(mission.argument[0])
+
+            if mission.type == MissionType.publish_rack_id:
+                return self.publishRackId(mission.argument[0])
 
         except Exception as e:
             print("[ERR] MissionExecutor: execute exception:", str(e))
@@ -285,7 +288,6 @@ class MissionExecutor:
         if self.verbose:
             print("MissionExecutor: Aligning with barcode")
 
-        self.mqttClient.publish(TOPIC_MISSION_PLANNER_RACK_ID, rackId, 2, True)
         # TODO: SMARTER IMPLEMENTATION PLS, SMH
         isNotAligned = True
         failCount = 0
@@ -327,7 +329,7 @@ class MissionExecutor:
 
         return 0
 
-    def waitForCv(self, rackId, isHighestLevel):
+    def waitForCv(self, isHighestLevel):
         if self.verbose:
             print("MissionExecutor: waitForCv: waiting for cv status to > 0")
 
@@ -360,6 +362,17 @@ class MissionExecutor:
 
         if endTime - startTime >= maxtime:
             return -1
+
+        return 0
+
+    def publishRackId(self, rackId):
+        if not self.mqttClient.is_connected():
+            return -1
+
+        if self.verbose:
+            print("MissionExecutor: Aligning with barcode")
+
+        self.mqttClient.publish(TOPIC_MISSION_PLANNER_RACK_ID, rackId, 2, True)
 
         return 0
 
