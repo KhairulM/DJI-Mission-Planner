@@ -68,29 +68,29 @@ class MissionLoader:
                         )
                     )
 
-                    missions.append(
-                        Mission(
-                            MissionType.align_with_barcode,
-                            [
-                                "%s-%d"
-                                % (
-                                    sweep["rack_id"],
-                                    i + 1 if fromBottom else len(levelHeights) - i,
-                                )
-                            ],
-                        )
-                    )
+                    # missions.append(
+                    #     Mission(
+                    #         MissionType.align_with_barcode,
+                    #         [
+                    #             "%s-%d"
+                    #             % (
+                    #                 sweep["rack_id"],
+                    #                 i + 1 if fromBottom else len(levelHeights) - i,
+                    #             )
+                    #         ],
+                    #     )
+                    # )
 
-                    isHighestLevel = (
-                        (i == len(levelHeights) - 1) if fromBottom else (i == 0)
-                    )
+                    # isHighestLevel = (
+                    #     (i == len(levelHeights) - 1) if fromBottom else (i == 0)
+                    # )
 
-                    missions.append(
-                        Mission(
-                            MissionType.wait_for_cv,
-                            [isHighestLevel],
-                        )
-                    )
+                    # missions.append(
+                    #     Mission(
+                    #         MissionType.wait_for_cv,
+                    #         [isHighestLevel],
+                    #     )
+                    # )
 
                 fromBottom = not fromBottom
 
