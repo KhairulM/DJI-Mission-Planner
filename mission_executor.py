@@ -190,7 +190,7 @@ class MissionExecutor:
         return 0
 
     def rotate(self, degree):
-        rotationSpeed = 5.0
+        rotationSpeed = 45.0
         controlData = [
             0.0,
             0.0,
@@ -330,6 +330,9 @@ class MissionExecutor:
         return 0
 
     def waitForCv(self, isHighestLevel):
+        if not self.mqttClient.is_connected():
+            return -1
+
         if self.verbose:
             print("MissionExecutor: waitForCv: waiting for cv status to > 0")
 
@@ -348,17 +351,18 @@ class MissionExecutor:
                 self.mqttClient.publish(
                     TOPIC_DJI_GIMBAL,
                     (endTime - startTime) / maxtime * maxGimbalPitchAngle,
-                    2,
+                    1,
                 )
 
+            if self.cvStatus["status"] == 1:
+                self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "true", 1)
+
             endTime = time.time()
-            self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "true", 1)
             continue
 
         self.mqttClient.publish(TOPIC_CV_RUN_DETECTION, "false", 1)
 
-        self.mqttClient.publish(TOPIC_DJI_GIMBAL_RESET, "true", 2)
-        self.mqttClient.publish(TOPIC_DJI_GIMBAL_RESET, "true", 2)
+        self.mqttClient.publish(TOPIC_DJI_GIMBAL, 0, 1)
 
         if endTime - startTime >= maxtime:
             return -1
